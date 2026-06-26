@@ -17,6 +17,7 @@ load_dotenv('/vercel/share/.env.project')
 from data_parser import DataParser
 from ranking_engine import RankingEngine
 from llm_analyzer import LLMAnalyzer
+from job_document_parser import parse_uploaded_job_document
 
 # Page Configuration
 st.set_page_config(
@@ -127,40 +128,65 @@ if page == "Upload Data":
             if sample_jobs and sample_candidates:
                 st.session_state.job_data = sample_jobs[0]
                 st.session_state.candidates_data = sample_candidates
-                st.success(f"Loaded demo data: {sample_jobs[0]['title']}")
+                st.success(f"Loaded demo: {sample_jobs[0]['title']} + {len(sample_candidates)} candidates")
                 st.rerun()
     with col2:
-        st.markdown("*Click the button above to load sample job and candidate data for quick testing*")
+        st.markdown("*Click to load sample job description and candidate profiles for quick testing*")
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader("📋 Job Description")
         st.info("""
-        **CSV Format required:**
-        - id: Unique job ID
-        - title: Job title
-        - description: Full job description
-        - level: Experience level (junior/mid/senior)
-        - department: Department name
-        - salary_range: Salary range (optional)
+        **Upload a single job description document:**
+        - Supported formats: PDF, DOCX, TXT
+        - The system will extract job title, description, requirements, and required skills
+        - You can edit extracted fields below if needed
         """)
         
-        job_file = st.file_uploader("Upload Job CSV", type=['csv'], key="job_upload")
+        job_file = st.file_uploader("Upload Job Description Document", type=['pdf', 'docx', 'txt'], key="job_upload")
         
         if job_file:
             try:
-                jobs = DataParser.load_csv_data(job_file, data_type='jobs')
-                if jobs:
-                    st.session_state.job_data = jobs[0]  # For MVP, use first job
-                    st.success(f"✅ Loaded job: {jobs[0]['title']}")
-                    st.json({
-                        'Title': jobs[0]['title'],
-                        'Required Skills': jobs[0]['required_skills'][:5],
-                        'Experience': f"{jobs[0]['experience_years']} years"
-                    })
+                # Parse the job document
+                job_data = parse_uploaded_job_document(job_file)
+                
+                # Store in session state
+                st.session_state.job_data = job_data
+                st.success(f"✅ Loaded job: {job_data['title']}")
+                
+                # Show extracted information
+                st.write("**Extracted Job Information:**")
+                
+                # Display editable fields
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    job_title = st.text_input("Job Title", value=job_data['title'], key="job_title_edit")
+                    st.session_state.job_data['title'] = job_title
+                    
+                    experience = st.number_input("Years of Experience Required", 
+                                                value=job_data['experience_years'], 
+                                                min_value=0, max_value=50, key="exp_edit")
+                    st.session_state.job_data['experience_years'] = experience
+                
+                with col_b:
+                    st.write("**Required Skills** (extracted):")
+                    st.write(", ".join(job_data['required_skills'][:10]) if job_data['required_skills'] else "No skills extracted")
+                
+                st.text_area("Job Description", 
+                            value=job_data['description'], 
+                            height=100, 
+                            disabled=True,
+                            key="job_desc_view")
+                
+                st.text_area("Requirements", 
+                            value=job_data['requirements'], 
+                            height=100,
+                            disabled=True,
+                            key="job_req_view")
+                    
             except Exception as e:
-                st.error(f"Error loading job: {e}")
+                st.error(f"Error loading job document: {e}")
     
     with col2:
         st.subheader("👥 Candidate Profiles")

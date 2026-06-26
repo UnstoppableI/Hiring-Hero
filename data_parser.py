@@ -7,6 +7,7 @@ import pandas as pd
 import json
 from typing import List, Dict, Any, Tuple
 import re
+from job_document_parser import JobDocumentParser
 
 
 class DataParser:
@@ -157,3 +158,26 @@ class DataParser:
             return [DataParser.parse_job_description(record) for record in records]
         
         return records
+    
+    @staticmethod
+    def load_job_from_document(file_content: bytes, file_type: str, filename: str = "") -> Dict[str, Any]:
+        """
+        Load job from document (PDF, DOCX, TXT)
+        
+        Args:
+            file_content: Raw file bytes
+            file_type: File extension (pdf, docx, txt)
+            filename: Original filename for reference
+        
+        Returns:
+            Parsed job dictionary
+        """
+        # Use JobDocumentParser to extract data
+        raw_job_data = JobDocumentParser.parse_job_from_document(
+            file_content, 
+            file_type, 
+            filename
+        )
+        
+        # Parse using DataParser for consistency
+        return DataParser.parse_job_description(raw_job_data)

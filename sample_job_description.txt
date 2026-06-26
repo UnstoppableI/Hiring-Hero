@@ -1,0 +1,47 @@
+SENIOR PYTHON DEVELOPER
+
+Position: Senior Python Developer
+
+About the Role:
+We are seeking an experienced Senior Python Developer to join our growing engineering team. 
+You will work on backend services, API development, and microservices architecture. 
+This is a great opportunity to work on scalable systems serving millions of users.
+
+Responsibilities:
+- Design and implement scalable Python applications
+- Build RESTful APIs and GraphQL services
+- Develop and maintain microservices
+- Collaborate with cross-functional teams
+- Mentor junior developers
+- Implement CI/CD pipelines
+- Optimize database queries and application performance
+- Conduct code reviews
+
+Requirements:
+- 5+ years of professional Python experience
+- Strong knowledge of Django or FastAPI
+- Experience with PostgreSQL and Redis
+- Proficiency with Docker and Kubernetes
+- AWS or GCP experience preferred
+- Understanding of microservices architecture
+- Experience with CI/CD tools (Jenkins, GitLab CI)
+- Strong problem-solving skills
+- Bachelor's degree in Computer Science or related field
+
+Skills Required:
+Python, Django, FastAPI, PostgreSQL, MySQL, Redis, Docker, Kubernetes, AWS, GCP, 
+REST API, GraphQL, Microservices, CI/CD, Git, Linux, Problem Solving, System Design
+
+Experience:
+The ideal candidate will have 7-10 years of software development experience with at least 5 years focused on Python development.
+
+Compensation and Benefits:
+- Competitive salary: $120,000 - $180,000 per year
+- Health insurance coverage
+- 401(k) matching
+- Flexible work arrangements
+- Professional development budget
+- Equity options
+
+About Us:
+We are a fast-growing technology company focused on building innovative solutions.
