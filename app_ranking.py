@@ -257,16 +257,16 @@ elif page == "Ranking Results":
         # Summary Metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            tier1_count = sum(1 for r in results if r['ranking_score']['total'] >= 85)
+            tier1_count = sum(1 for r in results if r['score']['total'] >= 85)
             col1.metric("🥇 Tier 1 (Strong Match)", tier1_count)
         with col2:
-            tier2_count = sum(1 for r in results if 70 <= r['ranking_score']['total'] < 85)
+            tier2_count = sum(1 for r in results if 70 <= r['score']['total'] < 85)
             col2.metric("🥈 Tier 2 (Good Match)", tier2_count)
         with col3:
-            tier3_count = sum(1 for r in results if 55 <= r['ranking_score']['total'] < 70)
+            tier3_count = sum(1 for r in results if 55 <= r['score']['total'] < 70)
             col3.metric("🥉 Tier 3 (Moderate)", tier3_count)
         with col4:
-            avg_score = sum(r['ranking_score']['total'] for r in results) / len(results)
+            avg_score = sum(r['score']['total'] for r in results) / len(results)
             col4.metric("📊 Average Score", f"{avg_score:.1f}")
         
         st.divider()
@@ -277,7 +277,7 @@ elif page == "Ranking Results":
         ranking_data = []
         for idx, result in enumerate(results, 1):
             candidate = result['candidate']
-            score = result['ranking_score']
+            score = result['score']
             
             ranking_data.append({
                 'Rank': idx,
@@ -327,7 +327,7 @@ elif page == "Candidate Details":
         results = st.session_state.ranking_results
         
         # Candidate Selection
-        candidate_options = [f"{r['candidate']['name']} (Score: {r['ranking_score']['total']})" 
+        candidate_options = [f"{r['candidate']['name']} (Score: {r['score']['total']})" 
                            for r in results]
         selected_idx = st.selectbox("Select Candidate:", 
                                    range(len(results)), 
@@ -335,7 +335,7 @@ elif page == "Candidate Details":
         
         result = results[selected_idx]
         candidate = result['candidate']
-        score = result['ranking_score']
+        score = result['score']
         
         st.divider()
         
@@ -441,7 +441,7 @@ elif page == "Export Report":
         
         for idx, result in enumerate(results, 1):
             candidate = result['candidate']
-            score = result['ranking_score']
+            score = result['score']
             ranking_engine = RankingEngine()
             tier = ranking_engine.get_tier_classification(score['total'])
             
