@@ -9,6 +9,10 @@ import os
 from typing import List, Dict, Any
 import json
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv('/vercel/share/.env.project')
 
 from data_parser import DataParser
 from ranking_engine import RankingEngine
@@ -85,9 +89,19 @@ if 'candidates_data' not in st.session_state:
     st.session_state.candidates_data = None
 
 # Header
-st.markdown('<p class="main-header">🎯 AI-Powered Candidate Ranking System</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">AI-Powered Candidate Ranking System</p>', unsafe_allow_html=True)
 st.markdown('<p class="sub-header">Intelligent Screening & Semantic Matching</p>', unsafe_allow_html=True)
 st.divider()
+
+# Auto-load sample data if available
+@st.cache_data
+def load_sample_data():
+    try:
+        jobs = DataParser.load_csv_data('sample_jobs.csv', data_type='jobs')
+        candidates = DataParser.load_csv_data('sample_candidates.csv', data_type='candidates')
+        return jobs, candidates
+    except:
+        return None, None
 
 # Sidebar Navigation
 with st.sidebar:
@@ -102,8 +116,21 @@ with st.sidebar:
 
 # PAGE 1: UPLOAD DATA
 if page == "Upload Data":
-    st.header("1️⃣ Upload Job & Candidate Data")
+    st.header("Upload Job & Candidate Data")
     st.write("Upload CSV files containing job descriptions and candidate profiles")
+    
+    # Demo Data Button
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if st.button("Load Demo Data", type="secondary", use_container_width=True):
+            sample_jobs, sample_candidates = load_sample_data()
+            if sample_jobs and sample_candidates:
+                st.session_state.job_data = sample_jobs[0]
+                st.session_state.candidates_data = sample_candidates
+                st.success(f"Loaded demo data: {sample_jobs[0]['title']}")
+                st.rerun()
+    with col2:
+        st.markdown("*Click the button above to load sample job and candidate data for quick testing*")
     
     col1, col2 = st.columns(2)
     

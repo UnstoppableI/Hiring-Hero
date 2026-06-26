@@ -7,6 +7,11 @@ import json
 import csv
 from datetime import datetime
 import sys
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file or system
+load_dotenv('/vercel/share/.env.project')
 
 # Import our modules
 from data_parser import DataParser
