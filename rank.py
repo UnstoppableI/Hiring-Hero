@@ -5,10 +5,9 @@ Single command:
     python rank.py --candidates ./candidates.jsonl --out ./submission.csv
 
 Runs end-to-end on CPU, no network access required. Reads candidates from a
-JSONL file (one JSON object per line), scores them with the JD-aware Redrob
-scorer (which reasons about what the JD *means* rather than counting AI
-keywords), and writes submission.csv with columns:
-Rank, Candidate_ID, Total Score, LLM Analysis.
+JSONL file (one JSON object per line), scores them with the multi-factor
+RankingEngine, generates a rule-based analysis for each, and writes
+submission.csv with columns: Rank, Candidate_ID, Total Score, LLM Analysis.
 """
 
 import argparse
@@ -19,35 +18,22 @@ import sys
 from typing import Any, Dict, List
 
 from data_parser import DataParser
-from redrob_scoring import score_candidate, build_analysis
+from ranking_engine import RankingEngine
 
 
-# The target role for this challenge: Redrob AI "Senior AI Engineer - Founding
-# Team". Baked in so the single reproduce command works standalone and offline.
-# The scorer in redrob_scoring.py encodes the meaning of this JD; the text is
-# kept here for reference and for any downstream semantic use.
+# Default job target used when no --job file is supplied, so the single
+# reproduce command works standalone. Override with --job <path-to-json>.
 DEFAULT_JOB: Dict[str, Any] = {
-    "id": "redrob-senior-ai-engineer",
-    "title": "Senior AI Engineer - Founding Team (Redrob AI)",
+    "id": "default-role",
+    "title": "Software Engineer",
     "description": (
-        "Own the intelligence layer of an AI-native talent platform: the "
-        "ranking, retrieval and matching systems that decide what recruiters "
-        "see. Must have production experience with embeddings-based retrieval "
-        "(sentence-transformers, BGE, E5, OpenAI embeddings) deployed to real "
-        "users, vector/hybrid search infrastructure (Pinecone, Weaviate, "
-        "Qdrant, Milvus, OpenSearch, Elasticsearch, FAISS), strong Python, and "
-        "hands-on ranking evaluation (NDCG, MRR, MAP, offline-to-online "
-        "correlation, A/B testing). Nice to have: LLM fine-tuning (LoRA, "
-        "QLoRA, PEFT), learning-to-rank (XGBoost or neural), HR-tech or "
-        "marketplace experience, distributed systems, open-source work. "
-        "Ideal: 6-8 years total, 4-5 in applied ML at product companies, "
-        "having shipped an end-to-end ranking/search/recommendation system at "
-        "scale. Not a fit: pure-research-without-production, consulting-only "
-        "careers, computer-vision/speech/robotics without NLP/IR, AI "
-        "experience limited to LangChain/OpenAI wrappers, title-chasers, and "
-        "candidates who are inactive or unresponsive to recruiters."
+        "We are hiring a software engineer with strong programming skills in "
+        "Python, JavaScript, and SQL. The ideal candidate has experience with "
+        "cloud platforms (AWS), Docker, CI/CD, and modern web frameworks such "
+        "as React. 5 years of experience preferred. Strong communication, "
+        "leadership, problem solving, and teamwork are valued."
     ),
-    "level": "senior",
+    "level": "mid",
 }
 
 
@@ -68,6 +54,62 @@ def load_candidates_jsonl(path: str) -> List[Dict[str, Any]]:
     return records
 
 
+def load_job(path: str) -> Dict[str, Any]:
+    """Load and parse a job description from a JSON file."""
+    with open(path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    if isinstance(data, list):
+        data = data[0]
+    return DataParser.parse_job_description(data)
+
+
+def build_analysis(candidate: Dict[str, Any], score: Dict[str, Any]) -> str:
+    """Rule-based, fully offline candidate analysis (no LLM/network)."""
+    components = score["components"]
+    total = score["total"]
+
+    strengths: List[str] = []
+    if components["skill_match"] >= 80:
+        strengths.append("strong technical skill alignment")
+    if components["experience_level"] >= 90:
+        strengths.append("extensive relevant experience")
+    if components["career_growth"] >= 75:
+        strengths.append("clear career progression")
+    if components["semantic_similarity"] >= 70:
+        strengths.append("resume closely matches the role")
+    if components["soft_skills"] >= 60:
+        strengths.append("demonstrated soft skills")
+    if not strengths:
+        strengths.append("meets baseline requirements")
+
+    gaps: List[str] = []
+    if components["skill_match"] < 60:
+        gaps.append("missing some key technical skills")
+    if components["experience_level"] < 50:
+        gaps.append("limited years of relevant experience")
+    if components["soft_skills"] < 50:
+        gaps.append("soft skills not clearly demonstrated")
+    if components["semantic_similarity"] < 50:
+        gaps.append("resume weakly aligned with role")
+    if not gaps:
+        gaps.append("no major gaps identified")
+
+    if total >= 85:
+        recommendation = "Strong Hire"
+    elif total >= 70:
+        recommendation = "Good Fit"
+    elif total >= 55:
+        recommendation = "Consider"
+    else:
+        recommendation = "Pass"
+
+    return (
+        f"{recommendation} ({total}/100). "
+        f"Strengths: {', '.join(strengths)}. "
+        f"Gaps: {', '.join(gaps)}."
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Offline candidate ranking -> submission.csv"
@@ -82,6 +124,11 @@ def main() -> int:
         required=True,
         help="Path to write submission.csv",
     )
+    parser.add_argument(
+        "--job",
+        default=None,
+        help="Optional path to a job description JSON file (defaults to built-in role)",
+    )
     args = parser.parse_args()
 
     if not os.path.exists(args.candidates):
@@ -92,24 +139,25 @@ def main() -> int:
     if not candidates:
         print("[rank] No valid candidates found; writing empty submission.")
 
-    # Score every candidate against the Redrob JD, then sort by total desc.
-    scored: List[Dict[str, Any]] = []
-    for candidate in candidates:
-        score = score_candidate(candidate)
-        scored.append({"candidate": candidate, "score": score})
-    scored.sort(key=lambda x: x["score"]["total"], reverse=True)
+    job = load_job(args.job) if args.job else DataParser.parse_job_description(DEFAULT_JOB)
+
+    engine = RankingEngine()
+    engine.load_candidates(candidates)
+    engine.load_job(job)
+
+    ranked = engine.rank_candidates() if candidates else []
 
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Rank", "Candidate_ID", "Total Score", "LLM Analysis"])
-        for rank, item in enumerate(scored, start=1):
+        for rank, item in enumerate(ranked, start=1):
             candidate = item["candidate"]
             score = item["score"]
             candidate_id = candidate.get("id") or candidate.get("name", f"candidate_{rank}")
             analysis = build_analysis(candidate, score)
             writer.writerow([rank, candidate_id, score["total"], analysis])
 
-    print(f"[rank] Wrote {len(scored)} ranked candidates to {args.out}")
+    print(f"[rank] Wrote {len(ranked)} ranked candidates to {args.out}")
     return 0
 
 
