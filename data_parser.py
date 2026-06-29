@@ -3,7 +3,6 @@ Data Parsing and Utility Functions
 Handles parsing of job descriptions and candidate resumes
 """
 
-import pandas as pd
 import json
 from typing import List, Dict, Any, Tuple
 import re
@@ -133,6 +132,7 @@ class DataParser:
     @staticmethod
     def load_csv_data(file_path: str, data_type: str = 'candidates') -> List[Dict[str, Any]]:
         """Load data from CSV file"""
+        import pandas as pd
         df = pd.read_csv(file_path)
         records = df.to_dict('records')
         

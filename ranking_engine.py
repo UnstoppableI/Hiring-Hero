@@ -5,7 +5,6 @@ Combines semantic search with multi-factor scoring for comprehensive candidate r
 
 from typing import List, Dict, Tuple, Any
 import math
-from embeddings import EmbeddingsManager
 from data_parser import DataParser
 
 
@@ -22,8 +21,17 @@ class RankingEngine:
     }
     
     def __init__(self):
-        """Initialize ranking engine"""
-        self.embeddings = EmbeddingsManager()
+        """Initialize ranking engine.
+
+        Embeddings are optional and loaded lazily; the scoring logic uses
+        keyword overlap, so the engine runs fully offline without numpy/openai.
+        """
+        self.embeddings = None
+        try:
+            from embeddings import EmbeddingsManager
+            self.embeddings = EmbeddingsManager()
+        except Exception as e:
+            print(f"[ranking] Embeddings unavailable, using lexical scoring only: {e}")
         self.candidates = []
         self.job_description = None
     
