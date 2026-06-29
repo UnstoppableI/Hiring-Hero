@@ -88,21 +88,42 @@ class RankingEngine:
             'components': {k: round(v, 2) for k, v in components.items()}
         }
     
+    # Common English stopwords excluded from keyword-overlap similarity so the
+    # score reflects meaningful term overlap rather than filler words.
+    _STOPWORDS = {
+        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'can',
+        'do', 'for', 'from', 'has', 'have', 'how', 'if', 'in', 'into', 'is',
+        'it', 'its', 'of', 'on', 'or', 'our', 'so', 'that', 'the', 'their',
+        'them', 'they', 'this', 'to', 'we', 'what', 'when', 'where', 'which',
+        'who', 'will', 'with', 'you', 'your', 'about', 'not', 'no', 'this',
+        'these', 'those', 'than', 'then', 'there', 'here', 'just', 'most',
+        'more', 'some', 'any', 'all', 'each', 'because', 'us', 're', 'role',
+    }
+
+    def _tokenize(self, text: str) -> set:
+        """Lowercase, strip punctuation, drop stopwords and very short tokens."""
+        import re
+        tokens = re.findall(r"[a-z0-9][a-z0-9+#./-]*", text.lower())
+        return {t for t in tokens if len(t) > 2 and t not in self._STOPWORDS}
+
     def _score_semantic_similarity(self, candidate: Dict[str, Any]) -> float:
         """Score how well candidate's resume semantically matches job (0-100)"""
         job_text = f"{self.job_description['title']} {self.job_description['description']}"
         candidate_text = f"{candidate['name']} {candidate['resume']}"
-        
-        # For MVP, use simple keyword overlap as proxy for semantic similarity
-        job_words = set(job_text.lower().split())
-        candidate_words = set(candidate_text.lower().split())
-        
+
+        # Keyword overlap over meaningful (non-stopword) terms as an offline
+        # proxy for semantic similarity.
+        job_words = self._tokenize(job_text)
+        candidate_words = self._tokenize(candidate_text)
+
         if not job_words:
             return 50
-        
+
+        # Jaccard-style recall of job terms covered by the resume, scaled up
+        # since a resume realistically covers only a fraction of a long JD.
         overlap = len(job_words & candidate_words)
-        similarity = (overlap / len(job_words)) * 100
-        
+        similarity = (overlap / len(job_words)) * 100 * 2.5
+
         return min(100, similarity)
     
     def _score_skill_match(self, candidate: Dict[str, Any]) -> float:

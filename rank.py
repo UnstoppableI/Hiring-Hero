@@ -22,18 +22,34 @@ from ranking_engine import RankingEngine
 
 
 # Default job target used when no --job file is supplied, so the single
-# reproduce command works standalone. Override with --job <path-to-json>.
+# reproduce command works standalone and offline. Derived from the Redrob AI
+# "Senior AI Engineer — Founding Team" job description. Override with
+# --job <path-to-json>.
 DEFAULT_JOB: Dict[str, Any] = {
-    "id": "default-role",
-    "title": "Software Engineer",
+    "id": "redrob-senior-ai-engineer",
+    "title": "Senior AI Engineer - Founding Team",
     "description": (
-        "We are hiring a software engineer with strong programming skills in "
-        "Python, JavaScript, and SQL. The ideal candidate has experience with "
-        "cloud platforms (AWS), Docker, CI/CD, and modern web frameworks such "
-        "as React. 5 years of experience preferred. Strong communication, "
-        "leadership, problem solving, and teamwork are valued."
+        "Redrob AI, a Series A AI-native talent intelligence platform, is hiring a "
+        "Senior AI Engineer to own the intelligence layer of the product: the ranking, "
+        "retrieval, and matching systems that power candidate-JD matching at scale. "
+        "5 to 9 years of experience. We need deep technical depth in modern ML systems "
+        "combined with a scrappy product-engineering, ship-fast attitude. "
+        "Must have: production experience with embeddings-based retrieval systems "
+        "(sentence-transformers, OpenAI embeddings, BGE, E5) deployed to real users, "
+        "handling embedding drift, index refresh, and retrieval-quality regression. "
+        "Production experience with vector databases and hybrid search infrastructure "
+        "(Pinecone, Weaviate, Qdrant, Milvus, OpenSearch, Elasticsearch, FAISS). "
+        "Strong Python and high code quality. Hands-on experience designing evaluation "
+        "frameworks for ranking systems: NDCG, MRR, MAP, offline-to-online correlation, "
+        "and A/B test interpretation. "
+        "Nice to have: LLM fine-tuning (LoRA, QLoRA, PEFT), learning-to-rank models "
+        "(XGBoost-based or neural), HR-tech or recruiting tech or marketplace products, "
+        "distributed systems, large-scale inference optimization, and open-source "
+        "contributions in AI/ML. "
+        "Strong communication, leadership, mentoring, and problem solving are valued, "
+        "as the engineer will help grow the team and drive long-term architecture."
     ),
-    "level": "mid",
+    "level": "senior",
 }
 
 

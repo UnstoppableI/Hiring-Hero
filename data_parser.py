@@ -67,6 +67,17 @@ class DataParser:
             'project management': ['project management', 'scrum', 'agile', 'kanban'],
             'communication': ['communication', 'leadership', 'teamwork'],
             'problem solving': ['problem solving', 'analytical'],
+            # AI / ML / information-retrieval domain skills
+            'embeddings': ['embedding', 'embeddings', 'sentence-transformers', 'sentence transformers', 'bge', 'e5', 'word2vec'],
+            'retrieval': ['retrieval', 'rag', 'semantic search', 'hybrid search', 'bm25', 'information retrieval'],
+            'ranking': ['ranking', 'ranker', 're-ranking', 'reranking', 'learning-to-rank', 'learning to rank', 'ltr'],
+            'vector database': ['vector database', 'vector db', 'pinecone', 'weaviate', 'qdrant', 'milvus', 'faiss', 'opensearch', 'elasticsearch'],
+            'llm': ['llm', 'large language model', 'gpt', 'transformer', 'transformers'],
+            'fine-tuning': ['fine-tuning', 'fine tuning', 'finetuning', 'lora', 'qlora', 'peft'],
+            'evaluation metrics': ['ndcg', 'mrr', 'map', 'precision@k', 'recall@k', 'a/b test', 'a/b testing', 'offline evaluation'],
+            'deep learning': ['deep learning', 'pytorch', 'tensorflow', 'keras', 'neural network'],
+            'nlp': ['nlp', 'natural language processing'],
+            'xgboost': ['xgboost', 'gradient boosting', 'lightgbm'],
         }
         
         text_lower = text.lower()
