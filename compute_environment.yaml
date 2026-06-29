@@ -1,0 +1,57 @@
+# Compute environment for the reproducible ranking pipeline.
+#
+# reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+#
+# The reproduce path is deliberately dependency-free: rank.py, ranking_engine.py,
+# and data_parser.py import only the Python standard library (argparse, json, csv,
+# re, math). No third-party packages, no model downloads, and no network access
+# are required to turn candidates.jsonl into submission.csv.
+
+compute_environment:
+  hardware:
+    cpu: "Any x86_64 or arm64 CPU (no GPU required)"
+    cores: 1                 # single-threaded; uses 1 core
+    memory_gb: 16            # ceiling; actual peak usage is < 200 MB
+    disk_gb: 1               # source + inputs/outputs only
+    accelerators: none
+
+  os:
+    supported:
+      - "Linux (Ubuntu 20.04+/Debian)"
+      - "macOS 12+"
+      - "Windows 10/11"
+
+  runtime:
+    language: python
+    python_version: ">=3.9,<3.13"   # tested on 3.11
+    package_manager: pip
+
+  # Dependencies needed ONLY by the reproduce_command (rank.py).
+  reproduce_dependencies: []        # none — Python standard library only
+
+  network:
+    required: false
+    egress: none                    # fully offline; no API calls, no model fetch
+
+  performance:
+    expected_runtime: "< 1 second for thousands of candidates"
+    time_limit: "5 minutes"
+    deterministic: true             # same input -> identical submission.csv
+
+  io:
+    input:
+      path: "./candidates.jsonl"
+      format: "JSON Lines (one candidate object per line)"
+      expected_fields: ["id", "name", "email", "resume"]
+    output:
+      path: "./submission.csv"
+      format: "CSV"
+      columns: ["Rank", "Candidate_ID", "Total Score", "LLM Analysis"]
+
+  job_target:
+    source: "Baked into rank.py (Redrob AI 'Senior AI Engineer' role)"
+    override: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv --job ./job.json"
+
+# Note: requirements.txt covers the FULL Streamlit application (streamlit,
+# pandas, numpy, openai, faiss-cpu, etc.). Those packages are NOT needed for the
+# reproduce_command above and are excluded from reproduce_dependencies on purpose.
