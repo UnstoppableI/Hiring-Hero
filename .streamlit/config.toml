@@ -1,0 +1,5 @@
+[server]
+# Maximum upload size for st.file_uploader, in megabytes.
+# Required to allow candidate JSONL files up to ~400 MB.
+maxUploadSize = 500
+maxMessageSize = 400
