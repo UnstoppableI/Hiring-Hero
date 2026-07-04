@@ -11,12 +11,17 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 
+load_dotenv()
+
+print("GEMINI_API_KEY:", os.getenv("GEMINI_API_KEY"))
+print("GOOGLE_API_KEY:", os.getenv("GOOGLE_API_KEY"))
 # Load environment variables
-load_dotenv('/vercel/share/.env.project')
+# load_dotenv('/vercel/share/.env.project')
 
 from data_parser import DataParser
 from ranking_engine import RankingEngine
 from llm_analyzer import LLMAnalyzer
+from job_document_parser import parse_uploaded_job_document
 
 # Page Configuration
 st.set_page_config(
@@ -127,72 +132,134 @@ if page == "Upload Data":
             if sample_jobs and sample_candidates:
                 st.session_state.job_data = sample_jobs[0]
                 st.session_state.candidates_data = sample_candidates
-                st.success(f"Loaded demo data: {sample_jobs[0]['title']}")
+                st.success(f"Loaded demo: {sample_jobs[0]['title']} + {len(sample_candidates)} candidates")
                 st.rerun()
     with col2:
-        st.markdown("*Click the button above to load sample job and candidate data for quick testing*")
+        st.markdown("*Click to load sample job description and candidate profiles for quick testing*")
     
     col1, col2 = st.columns(2)
     
     with col1:
         st.subheader("📋 Job Description")
         st.info("""
-        **CSV Format required:**
-        - id: Unique job ID
-        - title: Job title
-        - description: Full job description
-        - level: Experience level (junior/mid/senior)
-        - department: Department name
-        - salary_range: Salary range (optional)
+        **Upload a single job description document:**
+        - Supported formats: PDF, DOCX, TXT
+        - The system will extract job title, description, requirements, and required skills
+        - You can edit extracted fields below if needed
         """)
         
-        job_file = st.file_uploader("Upload Job CSV", type=['csv'], key="job_upload")
+        job_file = st.file_uploader("Upload Job Description Document", type=['pdf', 'docx', 'txt'], key="job_upload")
         
         if job_file:
             try:
-                jobs = DataParser.load_csv_data(job_file, data_type='jobs')
-                if jobs:
-                    st.session_state.job_data = jobs[0]  # For MVP, use first job
-                    st.success(f"✅ Loaded job: {jobs[0]['title']}")
-                    st.json({
-                        'Title': jobs[0]['title'],
-                        'Required Skills': jobs[0]['required_skills'][:5],
-                        'Experience': f"{jobs[0]['experience_years']} years"
-                    })
+                # Parse the job document
+                job_data = parse_uploaded_job_document(job_file)
+                
+                # Store in session state
+                st.session_state.job_data = job_data
+                st.success(f"✅ Loaded job: {job_data['title']}")
+                
+                # Show extracted information
+                st.write("**Extracted Job Information:**")
+                
+                # Display editable fields
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    job_title = st.text_input("Job Title", value=job_data['title'], key="job_title_edit")
+                    st.session_state.job_data['title'] = job_title
+                    
+                    experience = st.number_input("Years of Experience Required", 
+                                                value=job_data['experience_years'], 
+                                                min_value=0, max_value=50, key="exp_edit")
+                    st.session_state.job_data['experience_years'] = experience
+                
+                with col_b:
+                    st.write("**Required Skills** (extracted):")
+                    st.write(", ".join(job_data['required_skills'][:10]) if job_data['required_skills'] else "No skills extracted")
+                
+                st.text_area("Job Description", 
+                            value=job_data['description'], 
+                            height=100, 
+                            disabled=True,
+                            key="job_desc_view")
+                
+                st.text_area("Requirements", 
+                            value=job_data['requirements'], 
+                            height=100,
+                            disabled=True,
+                            key="job_req_view")
+                    
             except Exception as e:
-                st.error(f"Error loading job: {e}")
+                st.error(f"Error loading job document: {e}")
     
     with col2:
         st.subheader("👥 Candidate Profiles")
         st.info("""
-        **CSV Format required:**
-        - id: Unique candidate ID
-        - name: Full name
-        - email: Email address
-        - resume: Resume text/content
-        - education: Education details
-        - summary: Professional summary (optional)
+        **Accepted formats (up to 400 MB):**
+        - **CSV**: id, name, email, resume, education, summary (optional)
+        - **JSON**: a list of candidate objects, or candidates following the
+          full Redrob Candidate Profile Schema (candidate_id, profile,
+          career_history, education, skills, redrob_signals, ...)
+        - **JSONL**: one candidate JSON object per line (recommended for
+          very large datasets - streamed instead of loaded all at once)
         """)
-        
-        candidates_file = st.file_uploader("Upload Candidates CSV", type=['csv'], key="candidates_upload")
-        
+
+        candidates_file = st.file_uploader(
+            "Upload Candidate File",
+            type=["csv", "json", "jsonl"],
+            key="candidates_upload",
+            help="Upload candidate.csv, candidate.json, or candidate.jsonl (up to 400 MB)"
+        )
+
         if candidates_file:
             try:
-                candidates = DataParser.load_csv_data(candidates_file, data_type='candidates')
+
+                extension = candidates_file.name.split(".")[-1].lower()
+                file_size_mb = candidates_file.size / (1024 * 1024)
+                st.caption(f"File size: {file_size_mb:.1f} MB")
+
+                if extension == "csv":
+                    candidates = DataParser.load_csv_data(
+                        candidates_file,
+                        data_type="candidates"
+                    )
+
+                elif extension == "json":
+                    candidates = DataParser.load_json_data(
+                        candidates_file,
+                        data_type="candidates"
+                    )
+
+                elif extension == "jsonl":
+                    progress_text = st.empty()
+                    progress_text.info("⏳ Streaming JSONL file, this may take a moment for large files...")
+                    candidates = DataParser.load_jsonl_data(
+                        candidates_file,
+                        data_type="candidates",
+                        on_error="skip"
+                    )
+                    progress_text.empty()
+
+                else:
+                    st.error("Unsupported file format.")
+                    st.stop()
+
                 if candidates:
                     st.session_state.candidates_data = candidates
+
                     st.success(f"✅ Loaded {len(candidates)} candidates")
-                    
-                    st.write("**Sample Candidates:**")
+
                     sample_df = pd.DataFrame([
                         {
-                            'Name': c['name'],
-                            'Skills': len(c['skills']),
-                            'Experience': f"{c['experience_years']}y"
+                            "Name": c["name"],
+                            "Skills": len(c["skills"]),
+                            "Experience": f"{c['experience_years']}y"
                         }
                         for c in candidates[:3]
                     ])
+
                     st.dataframe(sample_df, use_container_width=True)
+
             except Exception as e:
                 st.error(f"Error loading candidates: {e}")
     
@@ -257,6 +324,7 @@ elif page == "Ranking Results":
         # Summary Metrics
         col1, col2, col3, col4 = st.columns(4)
         with col1:
+            
             tier1_count = sum(1 for r in results if r['score']['total'] >= 85)
             col1.metric("🥇 Tier 1 (Strong Match)", tier1_count)
         with col2:
@@ -275,38 +343,43 @@ elif page == "Ranking Results":
         st.subheader("📊 Full Rankings")
         
         ranking_data = []
-        for idx, result in enumerate(results, 1):
-            candidate = result['candidate']
-            score = result['score']
-            
+
+        for idx, result in enumerate(results, start=1):
+            candidate = result["candidate"]
+            score = result["score"]
+
+            # Get the one-line LLM summary already generated in Candidate Details
+            analysis_sentence = ""
+            if "analysis" in result:
+                analysis_sentence = result["analysis"].get("summary", "")
+            else:
+                analysis_sentence = "LLM analysis not available"
+
             ranking_data.append({
-                'Rank': idx,
-                'Name': candidate['name'],
-                'Total Score': score['total'],
-                'Skill Match': score['components']['skill_match'],
-                'Experience': score['components']['experience_level'],
-                'Career Growth': score['components']['career_growth'],
-                'Tier': "🥇 Tier 1" if score['total'] >= 85 else
-                        "🥈 Tier 2" if score['total'] >= 70 else
-                        "🥉 Tier 3" if score['total'] >= 55 else "Tier 4"
+                "Rank": idx,
+                "Candidate ID": candidate["id"],
+                "Total Score": round(score["total"], 2),
+                "Skill Match": round(score["components"]["skill_match"], 2),
+                "Career Growth": round(score["components"]["career_growth"], 2),
+                "LLM Analysis": analysis_sentence
             })
-        
+
         df_results = pd.DataFrame(ranking_data)
         
         # Add styling
         def style_score(val):
             if val >= 85:
-                return 'background-color: #e8f5e9'
+                return 'background-color: #0005e9'
             elif val >= 70:
-                return 'background-color: #fff3e0'
+                return 'background-color: #0003e0'
             elif val >= 55:
-                return 'background-color: #fff8e1'
+                return 'background-color: #0008e1'
             else:
-                return 'background-color: #ffebee'
+                return 'background-color: #00ebee'
         
         styled_df = df_results.style.applymap(style_score, subset=['Total Score'])
         st.dataframe(styled_df, use_container_width=True)
-        
+        # st.json(results)
         # Download Results
         st.divider()
         csv = df_results.to_csv(index=False)
