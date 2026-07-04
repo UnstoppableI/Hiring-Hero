@@ -1,0 +1,9 @@
+rank,candidate_id,candidate_name,email,total_score,tier,years_of_experience
+1,cand_001,Raj Kumar,raj.kumar@email.com,68.78,Tier 3 - Moderate Match,8
+2,cand_006,Neha Gupta,neha.gupta@email.com,56.77,Tier 3 - Moderate Match,5
+3,cand_003,Arjun Singh,arjun.singh@email.com,55.83,Tier 3 - Moderate Match,6
+4,cand_007,Rohit Verma,rohit.verma@email.com,54.39,Tier 4 - Weak Match,3
+5,cand_008,Sanjay Rao,sanjay.rao@email.com,46.14,Tier 4 - Weak Match,6
+6,cand_004,Ananya Desai,ananya.desai@email.com,40.58,Tier 4 - Weak Match,2
+7,cand_005,Vikram Patel,vikram.patel@email.com,39.13,Tier 4 - Weak Match,5
+8,cand_002,Priya Sharma,priya.sharma@email.com,27.63,Tier 4 - Weak Match,4
